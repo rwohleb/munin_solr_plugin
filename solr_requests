@@ -8,6 +8,11 @@ solr_core = (ENV['solr_core'] || "").split(',')
 query_name = ENV['query_name'] || 'standerd'
 xpath = "//entry[normalize-space(name/text())='#{query_name}']"
 
+if ARGV.length > 0 && ARGV[0] == 'autoconf'
+  puts "yes"
+  exit(0)
+end
+
 if ARGV.length > 0 && ARGV[0] == 'config'
   puts <<CONFIG
 graph_category solr

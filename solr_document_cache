@@ -3,6 +3,11 @@
 require 'open-uri'
 require 'rexml/document'
 
+if ARGV.length > 0 && ARGV[0] == 'autoconf'
+  puts "yes"
+  exit(0)
+end
+
 if ARGV.length > 0 && ARGV[0] == 'config'
   puts "graph_category solr"
   puts "graph_title Document Cache"
