@@ -3,6 +3,8 @@
 require 'open-uri'
 require 'rexml/document'
 
+solr_stats_url = ENV['solr_stats_url'] || 'http://localhost:8080/solr/admin/stats.jsp'
+
 if ARGV.length > 0 && ARGV[0] == 'autoconf'
   puts "yes"
   exit(0)
@@ -21,14 +23,14 @@ CONFIG
   exit(0)
 end
 
-solr_stats_url = ENV['solr_stats_url'] || 'http://localhost:8080/solr/admin/stats.jsp'
-xpath = '//CACHE'
-
 solr_stats = open(solr_stats_url)
 doc = REXML::Document.new(solr_stats)
 
-cache = doc.elements[xpath]
+cache = doc.elements['//CACHE']
+query_cache = cache.elements["//entry[normalize-space(name/text())='queryResultCache']//stat[@name='hitratio']"]
+doc_cache = cache.elements["//entry[normalize-space(name/text())='documentCache']//stat[@name='hitratio']"]
+filter_cache = cache.elements["//entry[normalize-space(name/text())='filterCache']//stat[@name='hitratio']"]
 
-puts "query_cache.value #{cache.elements['entry[1]/stats/stat[3]'].text.slice(/\s*0.([0-9]*)\s*/, 1)}"
-puts "document_cache.value #{cache.elements['entry[2]/stats/stat[3]'].text.slice(/\s*0.([0-9]*)\s*/, 1)}"
-puts "filter_cache.value #{cache.elements['entry[3]/stats/stat[3]'].text.slice(/\s*0.([0-9]*)\s*/, 1)}"
+puts "query_cache.value #{query_cache.text.slice(/\s*0.([0-9]*)\s*/, 1)}"
+puts "document_cache.value #{doc_cache.text.slice(/\s*0.([0-9]*)\s*/, 1)}"
+puts "filter_cache.value #{filter_cache.text.slice(/\s*0.([0-9]*)\s*/, 1)}"
