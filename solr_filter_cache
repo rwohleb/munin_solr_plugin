@@ -31,7 +31,7 @@ end
 solr_stats = open(solr_stats_url)
 doc = REXML::Document.new(solr_stats)
 
-doc_cache = cache.elements["//CACHE//entry[normalize-space(name/text())='filterCache']"]
+doc_cache = doc.elements["//CACHE//entry[normalize-space(name/text())='filterCache']"]
 stats.each do |stat|
   doc_cache_stat = doc_cache.elements["//stat[@name='#{stat}']"]
   puts "#{stat}.value #{doc_cache_stat.text.slice(/\s*([0-9.]*)\s*/, 1)}"
