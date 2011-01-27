@@ -1,0 +1,37 @@
+#! /usr/bin/env ruby
+
+require 'open-uri'
+require 'rexml/document'
+
+solr_stats_url = ENV['solr_stats_url'] || 'http://localhost:8080/solr/admin/stats.jsp'
+stats = [
+  'adds',
+  'deletesById',
+  'deletesByQuery'
+]
+
+if ARGV.length > 0 && ARGV[0] == 'autoconf'
+  puts "yes"
+  exit(0)
+end
+
+if ARGV.length > 0 && ARGV[0] == 'config'
+  puts "graph_category solr"
+  puts "graph_title Document Index Updates"
+  puts "graph_vlabel times / ${graph_period}"
+  
+  stats.each do |stat|
+    puts "#{stat}.label #{stat.gsub(/_/, ' ')}"
+    puts "#{stat}.type DERIVE"
+  end
+  exit(0)
+end
+
+solr_stats = open(solr_stats_url)
+doc = REXML::Document.new(solr_stats)
+
+doc_cache = doc.elements["//UPDATEHANDLER//entry[normalize-space(name/text())='updateHandler']"]
+stats.each do |stat|
+  doc_cache_stat = doc_cache.elements["//stat[@name='#{stat}']"]
+  puts "#{stat}.value #{doc_cache_stat.text.slice(/\s*([0-9.]*)\s*/, 1)}"
+end
