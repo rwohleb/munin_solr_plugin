@@ -17,11 +17,11 @@ end
 if ARGV.length > 0 && ARGV[0] == 'config'
   puts "graph_category solr"
   puts "graph_title Document Index"
-  puts "graph_vlabel times / ${graph_period}"
+  puts "graph_vlabel num documents"
   
   stats.each do |stat|
     puts "#{stat}.label #{stat.gsub(/_/, ' ')}"
-    puts "#{stat}.type DERIVE"
+    puts "#{stat}.type COUNTER"
   end
   exit(0)
 end
