@@ -3,6 +3,14 @@
 require 'open-uri'
 require 'rexml/document'
 
+solr_stats_url = ENV['solr_stats_url'] || 'http://localhost:8080/solr/admin/stats.jsp'
+stats = [
+  'cumulative_lookups',
+  'cumulative_hits',
+  'cumulative_inserts',
+  'cumulative_evictions'
+]
+
 if ARGV.length > 0 && ARGV[0] == 'autoconf'
   puts "yes"
   exit(0)
@@ -12,26 +20,19 @@ if ARGV.length > 0 && ARGV[0] == 'config'
   puts "graph_category solr"
   puts "graph_title Filter Cache"
   puts "graph_vlabel times / ${graph_period}"
-  puts "lookups.label lookups"
-  puts "lookups.type DERIVE"
-  puts "hits.label hits"
-  puts "hits.type DERIVE"
-  puts "inserts.label inserts"
-  puts "inserts.type DERIVE"
-  puts "evictions.label evictions"
-  puts "evictions.type DERIVE"
+  
+  stats.each do |stat|
+    puts "#{stat}.label #{stat.gsub(/_/, ' ')}"
+    puts "#{stat}.type DERIVE"
+  end
   exit(0)
 end
-
-solr_stats_url = ENV['solr_stats_url'] || 'http://localhost:8080/solr/admin/stats.jsp'
-xpath = '//CACHE/entry[3]/stats'
 
 solr_stats = open(solr_stats_url)
 doc = REXML::Document.new(solr_stats)
 
-stats = doc.elements[xpath]
-
-puts "lookups.value #{stats.elements[8].text.slice(/\s*([0-9.]*)\s*/, 1)}"
-puts "hits.value #{stats.elements[9].text.slice(/\s*([0-9.]*)\s*/, 1)}"
-puts "inserts.value #{stats.elements[11].text.slice(/\s*([0-9.]*)\s*/, 1)}"
-puts "evictions.value #{stats.elements[12].text.slice(/\s*([0-9.]*)\s*/, 1)}"
+doc_cache = cache.elements["//CACHE//entry[normalize-space(name/text())='filterCache']"]
+stats.each do |stat|
+  doc_cache_stat = doc_cache.elements["//stat[@name='#{stat}']"]
+  puts "#{stat}.value #{doc_cache_stat.text.slice(/\s*([0-9.]*)\s*/, 1)}"
+end

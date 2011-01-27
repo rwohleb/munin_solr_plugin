@@ -5,8 +5,7 @@ require 'rexml/document'
 
 solr_url = ENV['solr_url'] || 'http://localhost:8080'
 solr_core = (ENV['solr_core'] || "solr").split(',')
-query_name = ENV['query_name'] || 'standard'
-xpath = "//entry[normalize-space(name/text())='#{query_name}']"
+query_handlers = ['standard', 'dismax', 'partitioned']
 
 if ARGV.length > 0 && ARGV[0] == 'autoconf'
   puts "yes"
@@ -21,17 +20,21 @@ graph_vlabel requests / second
 graph_args --base 1000 -l 0 
 CONFIG
   solr_core.each do |core|
-    puts "requests_#{core.gsub(/-/, '_')}.label #{core}"
-    puts "requests_#{core.gsub(/-/, '_')}.type DERIVE"
+    query_handlers.each do |handler|
+      puts "requests_#{core.gsub(/-/, '_')}_#{handler.gsub(/\./, '_')}.label #{core} #{handler}"
+      puts "requests_#{core.gsub(/-/, '_')}_#{handler.gsub(/\./, '_')}.type DERIVE"
+    end
   end
   exit(0)
 end
 
 solr_core.each do |core|
-  solr_stats = open(solr_url + "/" + core + "/admin/stats.jsp")
+  solr_stats = open("#{solr_url}/#{core}/admin/stats.jsp")
   doc = REXML::Document.new(solr_stats)
-
-  entry = doc.elements[xpath]
-
-  puts "requests_#{core.gsub(/-/, '_')}.value #{entry.elements['stats/stat[2]'].text.gsub(/\s/, '')}"
+  queryhandler = doc.elements['//QUERYHANDLER']
+  
+  query_handlers.each do |handler|
+    requests = queryhandler.elements["//entry[normalize-space(name/text())='#{handler}']//stat[@name='requests']"]
+    puts "requests_#{core.gsub(/-/, '_')}_#{handler.gsub(/\./, '_')}.value #{requests.text.slice(/\s*([0-9.]*)\s*/, 1)}"
+  end
 end

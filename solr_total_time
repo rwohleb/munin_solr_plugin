@@ -3,10 +3,9 @@
 require 'open-uri'
 require 'rexml/document'
 
-solr_url = ENV['solr_url'] || 'http://localhost:8080/solr'
-solr_core = (ENV['solr_core'] || "").split(',')
-query_name = ENV['query_name'] || 'standerd'
-xpath = "//entry[normalize-space(name/text())='#{query_name}']"
+solr_url = ENV['solr_url'] || 'http://localhost:8080'
+solr_core = (ENV['solr_core'] || "solr").split(',')
+query_handlers = ['standard', 'dismax', 'partitioned']
 
 if ARGV.length > 0 && ARGV[0] == 'autoconf'
   puts "yes"
@@ -21,8 +20,10 @@ graph_vlabel milisecond / second
 graph_args --base 1000 -l 0 
 CONFIG
   solr_core.each do |core|
-    puts "total_time_#{core.gsub(/-/, '_')}.label #{core}"
-    puts "total_time_#{core.gsub(/-/, '_')}.type DERIVE"
+    query_handlers.each do |handler|
+      puts "total_time_#{core.gsub(/-/, '_')}_#{handler.gsub(/\./, '_')}.label #{core} #{handler}"
+      puts "total_time_#{core.gsub(/-/, '_')}_#{handler.gsub(/\./, '_')}.type DERIVE"
+   end
   end
   exit(0)
 end
@@ -30,8 +31,13 @@ end
 solr_core.each do |core|
   solr_stats = open("#{solr_url}/#{core}/admin/stats.jsp")
   doc = REXML::Document.new(solr_stats)
-
-  entry = doc.elements[xpath]
-
-  puts "total_time_#{core.gsub(/-/, '_')}.value #{entry.elements['stats/stat[5]'].text.gsub(/\s/, '')}"
+  queryhandler = doc.elements['//QUERYHANDLER']
+  
+  query_handlers.each do |handler|
+    requests = queryhandler.elements["//entry[normalize-space(name/text())='#{handler}']//stat[@name='requests']"]
+    totalTime = queryhandler.elements["//entry[normalize-space(name/text())='#{handler}']//stat[@name='totalTime']"]
+    
+    puts "requests_#{core.gsub(/-/, '_')}_#{handler.gsub(/\./, '_')}.value #{requests.text.slice(/\s*([0-9.]*)\s*/, 1)}"
+    puts "total_time_#{core.gsub(/-/, '_')}_#{handler.gsub(/\./, '_')}.value #{totalTime.text.slice(/\s*([0-9.]*)\s*/, 1)}"
+  end
 end
